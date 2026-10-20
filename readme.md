@@ -15,7 +15,11 @@
 
 Design and implement a concurrent seat reservation system that guarantees **zero double-bookings** under parallel request spikes using atomic Redis Lua locks, PostgreSQL optimistic concurrency control, BullMQ delayed expiration jobs, and Server-Sent Events (SSE).
 
-> 🎬 **[Drag and drop your 10–15s Demo MP4 / GIF here on GitHub]**
+## 🎬 Demo
+
+
+https://github.com/user-attachments/assets/c5a2d187-a2ae-4727-b25b-506954f91c14
+
 
 ---
 
