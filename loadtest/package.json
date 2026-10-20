@@ -1,0 +1,14 @@
+{
+  "name": "concurrent-ticket-engine-loadtest",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "benchmark": "tsx benchmark.ts",
+    "stress:local": "k6 run stress.k6.js",
+    "stress:docker": "docker compose -f ../docker-compose.dev.yaml run --rm k6 run //loadtest/stress.k6.js"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15"
+  }
+}

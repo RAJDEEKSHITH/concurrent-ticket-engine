@@ -1,0 +1,75 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: ticket_engine_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: concurrent_ticket_engine
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d concurrent_ticket_engine"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:8.10.2
+    container_name: ticket_engine_redis
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  server:
+    build: ./server
+    container_name: ticket_engine_server
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      CLIENT_URL: http://localhost:5173
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/concurrent_ticket_engine
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: super_secret_jwt_signing_key_2026
+      LOAD_TEST_SECRET: benchmark_secret_bypass
+      HOLD_TTL_SECONDS: 120
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  client:
+    build: ./client
+    container_name: ticket_engine_client
+    ports:
+      - "5173:5173"
+    depends_on:
+      - server
+
+  k6:
+    image: grafana/k6:latest
+    container_name: ticket_engine_k6
+    profiles:
+      - testing
+    volumes:
+      - ./loadtest:/loadtest
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - API_URL=http://host.docker.internal:4000/api
+
+volumes:
+  postgres_data:
+  redis_data:
