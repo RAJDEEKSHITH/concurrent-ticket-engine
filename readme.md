@@ -25,14 +25,14 @@ https://github.com/user-attachments/assets/c5a2d187-a2ae-4727-b25b-506954f91c14
 
 ## 📑 Table of Contents
 
-- [�️ Concurrent Ticket Booking Engine](#️-concurrent-ticket-booking-engine)
+- [🎟️ Concurrent Ticket Booking Engine](#️-concurrent-ticket-booking-engine)
   - [🎯 Objective](#-objective)
   - [📑 Table of Contents](#-table-of-contents)
   - [🏗️ System Architecture](#️-system-architecture)
   - [🔄 Reservation Lifecycle](#-reservation-lifecycle)
   - [⚙️ Key Engineering Decisions](#️-key-engineering-decisions)
   - [📊 Benchmarks \& Load Test Metrics](#-benchmarks--load-test-metrics)
-    - [1. 500-Request Burst Benchmark (`loadtest/benchmark.ts`)](#1-500-request-burst-benchmark-loadtestbenchmarkts)
+    - [1. 1,000-Request Burst Benchmark (`loadtest/benchmark.ts`)](#1-1000-request-burst-benchmark-loadtestbenchmarkts)
     - [2. Grafana k6 Stress Test (`loadtest/stress.k6.js`)](#2-grafana-k6-stress-test-loadteststressk6js)
   - [🚀 Docker Quickstart (Full Stack)](#-docker-quickstart-full-stack)
   - [💻 Local Development Setup](#-local-development-setup)
@@ -113,18 +113,22 @@ sequenceDiagram
 
 ## 📊 Benchmarks & Load Test Metrics
 
-### 1. 500-Request Burst Benchmark (`loadtest/benchmark.ts`)
-500 simultaneous HTTP `POST /api/seats/A1/hold` requests fired concurrently at Seat `A1`:
+> Both tests ran locally with the client, API, PostgreSQL and Redis on one development machine, so throughput and latency numbers depend on hardware. The key result is correctness: exactly one request wins the seat.
+
+### 1. 1,000-Request Burst Benchmark (`loadtest/benchmark.ts`)
+1,000 concurrent HTTP `POST /api/seats/A1/hold` requests fired at Seat `A1` using `Promise.all`:
 
 | Metric | Result |
 | :--- | :--- |
-| **Concurrent Virtual Users** | `500` simultaneous requests |
+| **Concurrent Virtual Users** | `1000` simultaneous requests |
 | **Target Resource** | Single Seat (`A1`) |
-| **Locks Acquired (`200 OK`)** | **`1`** |
-| **Race Losers Rejected (`409 Conflict`)** | **`499`** |
+| **Locks Acquired (`200 OK`)** | **`1`** (Zero Overbooking) |
+| **Race Losers Rejected (`409 Conflict`)** | **`999`** |
 | **Unexpected Server Errors (`5xx`)** | **`0`** |
-| **Throughput** | **`~1,205 req/sec`** |
-| **p50 / p95 / p99 Latency** | **`288.08 ms` / `372.42 ms` / `372.75 ms`** |
+| **Throughput** | **`~1,597 req/sec`** |
+| **p50 Latency** | **`555.07 ms`** |
+| **p95 Latency** | **`558.60 ms`** |
+| **p99 Latency** | **`558.73 ms`** |
 
 ### 2. Grafana k6 Stress Test (`loadtest/stress.k6.js`)
 200 concurrent Virtual Users (VUs) executing 300 shared iterations against Seat `A1` via Docker:
@@ -155,7 +159,7 @@ sequenceDiagram
 Run PostgreSQL, Redis, the Express API + BullMQ worker, and the React client in a single command:
 
 ```bash
-git clone [https://github.com/](https://github.com/)<your-username>/concurrent-ticket-engine.git
+git clone https://github.com/RAJDEEKSHITH/concurrent-ticket-engine.git
 cd concurrent-ticket-engine
 docker compose up --build -d
 ```
@@ -211,7 +215,7 @@ npm run dev
 # 1. Redis Lua atomic lock unit tests (Vitest)
 cd server && npm test
 
-# 2. 500-request concurrent burst benchmark
+# 2. 1,000-request concurrent burst benchmark
 cd loadtest && npm install && npm run benchmark
 
 # 3. Containerized Grafana k6 stress test (no local k6 install required)
@@ -261,6 +265,6 @@ concurrent-ticket-engine/
 │       ├── components/          # ProtectedRoute, PublicRoute, SeatGrid, CheckoutCard
 │       └── pages/               # LoginPage, RegisterPage, BookingPage
 └── loadtest/
-    ├── benchmark.ts             # 500-request burst benchmark
+    ├── benchmark.ts             # 1,000-request burst benchmark
     └── stress.k6.js             # Grafana k6 load test
 ```
